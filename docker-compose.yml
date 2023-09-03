@@ -1,43 +1,30 @@
-version: '2'
-
-volumes:
-  nextcloud:
-  db:
-
+version: '3.8'
+ 
 services:
-  db:
-    image: mariadb:10.6
+  nextcloud_db:
+    image: mariadb
+    container_name: nextcloud_db
     restart: always
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
     volumes:
-      - db:/var/lib/mysql
+     - ./db:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=
-      - MYSQL_PASSWORD=
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-
-  app:
-    image: nextcloud:fpm
-    restart: always
-    links:
-      - db
-    volumes:
-      - nextcloud:/var/www/html
-    environment:
-      - MYSQL_PASSWORD=
-      - MYSQL_DATABASE=nextcloud
-      - MYSQL_USER=nextcloud
-      - MYSQL_HOST=db
-
-  web:
-    image: nginx
+     - MYSQL_ROOT_PASSWORD=$NEXTCLOUD_MYSQL_ROOT_PASSWORD  # Mot de passe de l'utilisateur root de mariadb
+      - MYSQL_DATABASE=$NEXTCLOUD_MYSQL_DATABASE  # Nom de la base de données à créer à l'initialisation du conteneur
+      - MYSQL_USER=$NEXTCLOUD_MYSQL_USER  # Nom de l'utilisateur de la base de données créée
+      - MYSQL_PASSWORD=$NEXTCLOUD_MYSQL_PASSWORD  # Mot de passe de l'utilisateur créé
+ 
+  nextcloud_app:
+    image: nextcloud
     restart: always
     ports:
-      - 8080:80
+     - $NEXTCLOUD_PORT:80
     links:
-      - app
+     - nextcloud_db
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    volumes_from:
-      - app
+     - ./data:/var/www/html
+    environment:
+     - MYSQL_HOST=nextcloud_db  # Nom du conteneur de la base de données
+      - MYSQL_DATABASE=$NEXTCLOUD_MYSQL_DATABASE  # Nom de la base de données
+      - MYSQL_USER=$NEXTCLOUD_MYSQL_USER  # Nom de l'utilisateur de la base de données
+      - MYSQL_PASSWORD=$NEXTCLOUD_MYSQL_PASSWORD  # Mot de passe de l'utilisateur de la base de données
